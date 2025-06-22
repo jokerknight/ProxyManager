@@ -25,7 +25,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/
 1. 克隆仓库:
    ```bash
    git clone https://github.com/jokerknight/ProxyManager.git
-   cd proxy-manager
+   cd ProxyManager
    ```
 
 2. 运行安装脚本:
@@ -64,7 +64,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/
 ## 项目结构
 
 ```
-proxy-manager/
+ProxyManager/
 ├── LICENSE                 # MIT 许可证
 ├── README.md               # 中英文双语文档
 ├── README_CN.md            # 中文文档
