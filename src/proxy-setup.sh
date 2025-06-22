@@ -68,7 +68,7 @@ start_proxy() {
   # 显示状态
   echo "[Proxy] ✅  Active - using 🔁 $PROXY_ADDRESS"
 
-  #proxy_status
+  proxy_status
 }
 
 # Stop proxy settings
@@ -81,7 +81,7 @@ stop_proxy() {
   # Display status
   # 显示状态
   echo "[Proxy] ❌ Disabled"
-  #proxy_status
+  proxy_status
 }
 
 # Show proxy status
@@ -115,7 +115,7 @@ proxy_status() {
     fi
   fi
 
-   echo "  - ✅  IP: $(curl -4 api.ipify.org)"
+   #echo "  - ✅  IP: $(curl -4 api.ipify.org)"
 
 }
 
