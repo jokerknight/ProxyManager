@@ -1,3 +1,4 @@
+英文 [中文](README_CN) 
 # Proxy Management Script
 
 A lightweight, powerful proxy management script for Bash and Zsh, onekey config  http_proxy,https_proxy,socks5_proxy,all_proxy thought cli.
@@ -5,7 +6,7 @@ A lightweight, powerful proxy management script for Bash and Zsh, onekey config 
 ## Features
 
 - 🚀 Start/stop/toggle proxy settings with single commands  
-- 🔍 Auto-detect proxy port (7890, 7891, 8888, 8080)  
+- 🔍 Auto-detect proxy port (7890, 7891, 7892,7893,8888, 8080)  
 - 📊 Detailed proxy status information  
 - 🌐 Test internet and proxy connections  
 - ⚙️ Set custom proxy address  
