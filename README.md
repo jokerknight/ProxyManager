@@ -20,6 +20,12 @@ A lightweight, powerful proxy management script for Bash and Zsh, onekey config 
 bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/install.sh)
 ```
 
+### One-line Uninstall 
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/install.sh) --uninstall
+```
+
 ### Manual Install 
 
 1. Clone repository:  

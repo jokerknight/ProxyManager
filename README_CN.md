@@ -20,6 +20,12 @@
 bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/install.sh)
 ```
 
+### 一行命令卸载
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/install.sh) --uninstall
+```
+
 ### 手动安装
 
 1. 克隆仓库:
