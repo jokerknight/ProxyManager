@@ -1,4 +1,4 @@
-英文 [中文](README_CN) 
+英文 [中文](https://github.com/jokerknight/ProxyManager/blob/main/README_CN.md) 
 # Proxy Management Script
 
 A lightweight, powerful proxy management script for Bash and Zsh, onekey config  http_proxy,https_proxy,socks5_proxy,all_proxy thought cli.
