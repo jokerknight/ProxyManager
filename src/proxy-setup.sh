@@ -147,7 +147,7 @@ set_proxy() {
 
 # Display help information
 # 显示帮助信息
-phelp() {
+show_help() {
   echo "Proxy Management Commands (代理管理命令):"
   echo "  pstart    - Enable proxy (启用代理)"
   echo "  pstop     - Disable proxy (禁用代理)"
@@ -169,6 +169,7 @@ alias pstop='stop_proxy'
 alias ptoggle='toggle_proxy'
 alias pstatus='proxy_status'
 alias pset='set_proxy'
+alias phelp='show_help'
 
 # Initial message when loaded
 # 加载时显示初始消息
