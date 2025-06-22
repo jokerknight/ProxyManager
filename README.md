@@ -1,7 +1,7 @@
 英文 [中文](https://github.com/jokerknight/ProxyManager/blob/main/README_CN.md) 
 # Proxy Management Script
 
-A lightweight, powerful proxy management script for Bash and Zsh, onekey config  http_proxy,https_proxy,socks5_proxy,all_proxy thought cli.
+A lightweight, powerful proxy management script for Bash and Zsh, onekey config  http_proxy,https_proxy,socks5_proxy,all_proxy by cli.
 
 ## Features
 
@@ -26,7 +26,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/
 
    ```bash
    git clone https://github.com/jokerknight/ProxyManager.git
-   cd proxy-manager
+   cd ProxyManager
    ```
 
 2. Run installer:  
@@ -67,7 +67,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/
 ## Project Structure
 
 ```
-proxy-manager/
+ProxyManager/
 ├── LICENSE                 # MIT License
 ├── README.md               # Bilingual documentation
 ├── README_CN.md            # Chinese documentation (中文文档)
