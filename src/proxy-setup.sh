@@ -171,6 +171,26 @@ alias pstatus='proxy_status'
 alias pset='set_proxy'
 alias phelp='show_help'
 
+# 添加到提示符 (可选)
+# Add to prompt (optional)
+proxy_prompt() {
+  if [[ -n "$http_proxy" ]]; then
+    echo "[PROXY]"
+  else
+    echo ""
+  fi
+}
+
+# 自定义终端提示符，显示代理状态
+if [ -n "$BASH_VERSION" ]; then
+  # 对于Bash用户:
+  PS1='[\u@\h \W $(proxy_prompt)]\$ '
+elif [ -n "$ZSH_VERSION" ]; then
+  # 对于Zsh用户:
+  PROMPT='%B%F{green}%(?.✔.%F{red}✘)%f%b %F{blue}%1~%f %F{yellow}$(proxy_prompt)%f%# '
+fi
+
+
 # Initial message when loaded
 # 加载时显示初始消息
 echo "[Proxy] Manager loaded. Type 'phelp' for commands."
