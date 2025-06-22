@@ -96,7 +96,7 @@ proxy_status() {
   # Test basic internet connection
   # 测试基本网络连接
   echo "[Test] Checking connectivity:"
-  if curl -Is --max-time 3 https://example.com >/dev/null; then
+  if curl -Is --max-time 3 https://ip.sb >/dev/null; then
     echo "  ✔️ General internet access"
   else
     echo "  ❌ No internet access"
@@ -111,6 +111,9 @@ proxy_status() {
       echo "  ❌ Proxy not working (Google blocked)"
     fi
   fi
+
+   echo "  - IP: $(curl -4 api.ipify.org)"
+   echo "  - Location: $(curl -s https://ip.sb | grep 'Location' | awk '{print $2}')"
 }
 
 # Toggle proxy status
