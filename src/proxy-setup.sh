@@ -66,7 +66,7 @@ start_proxy() {
   
   # Display status
   # 显示状态
-  echo "[Proxy] ✔️ Active - using $PROXY_ADDRESS"
+  echo "[Proxy] ✅  Active - using 🔁 $PROXY_ADDRESS"
 
   #proxy_status
 }
@@ -80,7 +80,7 @@ stop_proxy() {
   
   # Display status
   # 显示状态
-  echo "[Proxy] ✖️ Disabled"
+  echo "[Proxy] ❌ Disabled"
   #proxy_status
 }
 
@@ -88,34 +88,34 @@ stop_proxy() {
 # 显示代理状态
 proxy_status() {
   if [ -n "$http_proxy" ]; then
-    echo "[Proxy] Current Status: ACTIVE"
-    echo " - HTTP:  $http_proxy"
-    echo " - HTTPS: $https_proxy"
-    echo " - SOCKS: $all_proxy"
+    echo "[Proxy] Current Status: ✅ ACTIVE"
+    echo " -🔷 HTTP:  $http_proxy"
+    echo " -🔷 HTTPS: $https_proxy"
+    echo " -🔶 SOCKS: $all_proxy"
   else
-    echo "[Proxy] Current Status: INACTIVE"
+    echo "[Proxy] Current Status: ❌ INACTIVE"
   fi
   
   # Test basic internet connection
   # 测试基本网络连接
   echo "[Test] Checking connectivity:"
   if curl -Is --max-time 3 https://ip.sb >/dev/null; then
-    echo "  ✔️ General internet access"
+    echo "  ✅  General internet access"
   else
-    echo "  ❌ No internet access"
+    echo "  ❌  No internet access"
   fi
   
   # Test proxy connection (only if active)
   # 测试代理连接（仅在激活状态）
   if [ -n "$http_proxy" ]; then
     if curl -Is --proxy "$PROXY_ADDRESS" https://www.google.com >/dev/null 2>&1; then
-      echo "  ✔️ Proxy working (Google accessible)"
+      echo "  ✅  Proxy working (Google accessible)"
     else
-      echo "  ❌ Proxy not working (Google blocked)"
+      echo "  ❌  Proxy not working (Google blocked)"
     fi
   fi
 
-   echo "  - IP: $(curl -4 api.ipify.org)"
+   echo "  - ✅  IP: $(curl -4 api.ipify.org)"
 
 }
 
