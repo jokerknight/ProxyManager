@@ -1,6 +1,6 @@
 # 代理管理脚本
 
-一个轻量级、功能强大的代理管理脚本，适用于 Bash 和 Zsh 环境。
+一个轻量级、功能强大的代理管理脚本，适用于 Bash 和 Zsh，一键配置 http_proxy,https_proxy,socks5_proxy,all_proxy. 带有一个 cli 快捷切换.
 
 ## 功能
 
@@ -16,14 +16,14 @@
 ### 一行命令安装
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/yourusername/proxy-manager/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/install.sh)
 ```
 
 ### 手动安装
 
 1. 克隆仓库:
    ```bash
-   git clone https://github.com/yourusername/proxy-manager.git
+   git clone https://github.com/jokerknight/ProxyManager.git
    cd proxy-manager
    ```
 
@@ -76,7 +76,7 @@ proxy-manager/
 
 欢迎提交 issue 或 pull request 来改进本项目。
 
-[在 GitHub 上查看](https://github.com/yourusername/proxy-manager)
+[在 GitHub 上查看](https://github.com/jokerknight/ProxyManager)
 
 ## 许可证
 

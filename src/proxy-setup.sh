@@ -1,6 +1,6 @@
 #!/bin/bash
 # Proxy Manager Installer
-# Licensed under MIT License (https://github.com/jokerknight/proxy-manager/blob/main/LICENSE)
+# Licensed under MIT License (https://github.com/jokerknight/ProxyManager/blob/main/LICENSE)
 # ==================================================
 # Proxy Management System v1.6
 # 代理管理系统 v1.6
@@ -21,8 +21,8 @@
 # 
 # Author: baixiaosheng
 # 作者：百晓生
-# Repository: https://github.com/yourusername/proxy-manager
-# 仓库地址：https://github.com/yourusername/proxy-manager
+# Repository: https://github.com/jokerknight/ProxyManager
+# 仓库地址：https://github.com/jokerknight/ProxyManager
 # ==================================================
 
 # Current proxy address (default: 127.0.0.1:7890)

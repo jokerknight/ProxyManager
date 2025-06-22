@@ -1,12 +1,12 @@
 #!/bin/bash
 # Proxy Manager Installer
-# Licensed under MIT License (https://github.com/jokerknight/proxy-manager/blob/main/LICENSE)
+# Licensed under MIT License (https://github.com/jokerknight/ProxyManager/blob/main/LICENSE)
 # Proxy Manager Installer
 # 代理管理器安装程序
 
 # Project repository URL
 # 项目仓库URL
-REPO_URL="https://github.com/jokerknight/proxy-manager"
+REPO_URL="https://github.com/jokerknight/ProxyManager"
 
 # Installer version
 # 安装程序版本
@@ -108,7 +108,7 @@ install_manager() {
   
   # Download installer files
   # 下载安装文件
-  curl -sL https://raw.githubusercontent.com/yourusername/proxy-manager/main/src/proxy-setup.sh -o "$SOURCE_FILE"
+  curl -sL https://raw.githubusercontent.com/jokerknight/ProxyManager/main/src/proxy-setup.sh -o "$SOURCE_FILE"
   chmod +x "$SOURCE_FILE"
   
   # Add to shell config file
