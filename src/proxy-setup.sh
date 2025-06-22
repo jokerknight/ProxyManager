@@ -67,6 +67,8 @@ start_proxy() {
   # Display status
   # 显示状态
   echo "[Proxy] ✔️ Active - using $PROXY_ADDRESS"
+
+  proxy_status
 }
 
 # Stop proxy settings
@@ -79,6 +81,7 @@ stop_proxy() {
   # Display status
   # 显示状态
   echo "[Proxy] ✖️ Disabled"
+  proxy_status
 }
 
 # Show proxy status
@@ -172,7 +175,6 @@ alias pset='set_proxy'
 alias phelp='show_help'
 
 # 添加到提示符 (可选)
-# Add to prompt (optional)
 proxy_prompt() {
   if [[ -n "$http_proxy" ]]; then
     echo "[PROXY]"
@@ -182,12 +184,13 @@ proxy_prompt() {
 }
 
 # 自定义终端提示符，显示代理状态
-if [ -n "$BASH_VERSION" ]; then
-  # 对于Bash用户:
-  PS1='[\u@\h \W $(proxy_prompt)]\$ '
-elif [ -n "$ZSH_VERSION" ]; then
+if [ -n "$ZSH_VERSION" ]; then
   # 对于Zsh用户:
   PROMPT='%B%F{green}%(?.✔.%F{red}✘)%f%b %F{blue}%1~%f %F{yellow}$(proxy_prompt)%f%# '
+fi
+if [ -n "$BASH_VERSION" ]; then
+  # 对于Bash用户:
+  PROMPT_COMMAND='PS1="\[\e[32m\]\$(if [[ -n \$http_proxy ]]; then echo ✔; else echo ✘; fi) \[\e[34m\]\w \[\e[33m\]\$(proxy_prompt)\[\e[0m\] \$ "'
 fi
 
 
