@@ -113,7 +113,7 @@ proxy_status() {
   fi
 
    echo "  - IP: $(curl -4 api.ipify.org)"
-   echo "  - Location: $(curl -s https://ip.sb | grep 'Location' | awk '{print $2}')"
+
 }
 
 # Toggle proxy status
