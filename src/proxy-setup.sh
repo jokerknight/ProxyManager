@@ -33,9 +33,9 @@ SOCKS_ADDRESS="socks5://127.0.0.1:7890"
 # Detect best proxy config automatically
 # 自动检测最佳代理配置
 detect_proxy() {
-  # Test common proxy ports: 7890, 7891, 8888, 8080
-  # 测试常见代理端口: 7890, 7891, 8888, 8080
-  for port in {7890,7891,8888,8080}; do
+  # Test common proxy ports: 7890, 7891,  7892,7893,8888, 8080
+  # 测试常见代理端口: 7890, 7891, 7892,7893,8888, 8080
+  for port in {7890,7891,7892,7893,8888,8080}; do
     if curl -s --proxy "http://127.0.0.1:$port" https://example.com >/dev/null 2>&1; then
       PROXY_ADDRESS="http://127.0.0.1:$port"
       SOCKS_ADDRESS="socks5://127.0.0.1:$port"
