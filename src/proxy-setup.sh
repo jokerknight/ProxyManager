@@ -163,7 +163,7 @@ show_help() {
   echo "Quick Start (快速开始):"
   echo "  pstart      # Enable proxy (启用代理)"
   echo "  pstatus     # Check status (查看状态)"
-  echo "  pset 192.168.1.100:8888 # Set custom proxy (设置代理)"
+  echo "  username:password@server:port # Set custom proxy (设置代理)"
 }
 
 # Configure aliases for quick access

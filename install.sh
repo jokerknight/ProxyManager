@@ -159,8 +159,14 @@ uninstall_manager() {
   # Remove aliases from current session
   # 从当前会话中删除别名
   unset detect_proxy start_proxy stop_proxy proxy_status
-  unset toggle_proxy set_proxy phelp
-  unalias pstart pstop ptoggle pstatus pset phelp 2>/dev/null
+  unset toggle_proxy set_proxy
+
+  for alias_name in pstart pstop ptoggle pstatus pset phelp; do
+    if alias "$alias_name" &>/dev/null; then
+      unalias "$alias_name"
+      unset "$alias_name"
+    fi
+  done  
   
   print_color green "✅ Uninstall complete!"
   print_color green "✅ 卸载完成！"
