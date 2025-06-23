@@ -52,7 +52,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/
 | `pstop`    | 禁用代理         | `pstop`             |
 | `ptoggle`  | 切换代理状态     | `ptoggle`           |
 | `pstatus`  | 显示代理状态     | `pstatus`           |
-| `pset`     | 设置自定义代理   | `pset 192.168.1.100:8888` |
+| `pset`     | 设置自定义代理   | `pset username:password@server:port` |
 | `phelp`    | 显示帮助信息     | `phelp`             |
 
 ## 卸载方法

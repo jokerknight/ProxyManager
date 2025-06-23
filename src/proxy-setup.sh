@@ -21,6 +21,7 @@
 # 
 # Author: baixiaosheng
 # 作者：百晓生
+# ref-site: https://www.baixiaosheng.de
 # Repository: https://github.com/jokerknight/ProxyManager
 # 仓库地址：https://github.com/jokerknight/ProxyManager
 # ==================================================

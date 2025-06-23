@@ -55,7 +55,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyManager/main/
 | `pstop`        | Disable proxy<br> | `pstop` |
 | `ptoggle`      | Toggle proxy<br> | `ptoggle` |
 | `pstatus`      | Show proxy status<br> | `pstatus` |
-| `pset`         | Set custom proxy<br> | `pset 192.168.1.100:8888` |
+| `pset`         | Set custom proxy<br> | `pset username:password@server:port` |
 | `phelp`        | Show help<br> | `phelp` |
 
 ## Uninstallation 

@@ -116,9 +116,8 @@ install_manager() {
   local config_file=$(find_shell_config "$shell_type")
   
   if [ -f "$config_file" ]; then
-    # Add source line if not already present
-    # 如果尚不存在，添加源代码行
-    if ! grep -q "SOURCE_FILE" "$config_file"; then
+    # 如果尚未包含 Proxy Manager Configuration，则添加
+    if ! grep -q "# Proxy Manager Configuration" "$config_file"; then
       echo -e "\n# Proxy Manager Configuration" >> "$config_file"
       echo "[ -f \"$SOURCE_FILE\" ] && source \"$SOURCE_FILE\"" >> "$config_file"
       print_color green "Added to $config_file"
