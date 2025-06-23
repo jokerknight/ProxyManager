@@ -156,18 +156,20 @@ uninstall_manager() {
     print_color green "✅ Removed installation directory"
     print_color green "✅ 已删除安装目录"
   fi
-  # Remove aliases from current session
-  # 从当前会话中删除别名
-  unset detect_proxy start_proxy stop_proxy proxy_status
-  unset toggle_proxy set_proxy
 
   for alias_name in pstart pstop ptoggle pstatus pset phelp; do
     if alias "$alias_name" &>/dev/null; then
       unalias "$alias_name"
-      unset "$alias_name"
+      unset -f "$alias_name"
     fi
   done  
-  
+
+  # 清除函数定义
+  # Clear function definitions
+  for func in detect_proxy start_proxy stop_proxy proxy_status toggle_proxy set_proxy show_help phelp; do
+    unset -f "$func" 2>/dev/null
+  done
+
   print_color green "✅ Uninstall complete!"
   print_color green "✅ 卸载完成！"
 }
