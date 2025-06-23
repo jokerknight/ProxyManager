@@ -139,23 +139,23 @@ uninstall_manager() {
   local shell_type=$(detect_shell)
   local config_file=$(find_shell_config "$shell_type")
   
-  # Remove source lines from config
-  # 从配置中删除源代码行
-  if [ -f "$config_file" ]; then
-    sed -i '/Proxy Manager Configuration/d' "$config_file"
-    sed -i '/SOURCE_FILE/d' "$config_file"
-    print_color green "Removed from $config_file"
-    print_color green "已从 $config_file 中移除"
+   if [ -f "$config_file" ]; then
+    print_color yellow "Cleaning up config from $config_file..."
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      sed -i '' '/# Proxy Manager Configuration/,+1d' "$config_file"
+    else
+      sed -i '/# Proxy Manager Configuration/,+1d' "$config_file"
+    fi
+
+    print_color green "✅ Removed from $config_file"
   fi
-  
-  # Remove installation directory
-  # 删除安装目录
+
   if [ -d "$INSTALL_DIR" ]; then
     rm -rf "$INSTALL_DIR"
-    print_color green "Removed installation directory"
-    print_color green "已删除安装目录"
+    print_color green "✅ Removed installation directory"
+    print_color green "✅ 已删除安装目录"
   fi
-  
   # Remove aliases from current session
   # 从当前会话中删除别名
   unset detect_proxy start_proxy stop_proxy proxy_status
