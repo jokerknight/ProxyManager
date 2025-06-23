@@ -133,13 +133,11 @@ install_manager() {
   print_color green "source \"$SOURCE_FILE\""
 }
 
-# Uninstall proxy manager
-# 卸载代理管理器
 uninstall_manager() {
   local shell_type=$(detect_shell)
   local config_file=$(find_shell_config "$shell_type")
-  
-   if [ -f "$config_file" ]; then
+
+  if [ -f "$config_file" ]; then
     print_color yellow "Cleaning up config from $config_file..."
 
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -157,21 +155,22 @@ uninstall_manager() {
     print_color green "✅ 已删除安装目录"
   fi
 
+  # 清除别名
   for alias_name in pstart pstop ptoggle pstatus pset phelp; do
-    if alias "$alias_name" &>/dev/null; then
-      unalias "$alias_name"
-      unset -f "$alias_name"
-    fi
-  done  
+    unalias "$alias_name" 2>/dev/null
+  done
 
   # 清除函数定义
-  # Clear function definitions
-  for func in detect_proxy start_proxy stop_proxy proxy_status toggle_proxy set_proxy show_help phelp; do
-    unset -f "$func" 2>/dev/null
+  for func_name in detect_proxy start_proxy stop_proxy toggle_proxy \
+    proxy_status set_proxy show_help phelp proxy_prompt; do
+    unset -f "$func_name" 2>/dev/null
   done
 
   print_color green "✅ Uninstall complete!"
   print_color green "✅ 卸载完成！"
+
+  print_color yellow "ℹ️ 为彻底清除所有命令，请关闭并重新打开终端，或执行：exec \$SHELL"
+  print_color yellow "ℹ️ To completely remove all commands, please close and reopen your terminal, or run: exec \$SHELL"
 }
 
 # Show help information
