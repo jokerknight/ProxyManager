@@ -1,201 +1,387 @@
-#!/bin/bash
-# Proxy Manager Installer
-# Licensed under MIT License (https://github.com/jokerknight/ProxyManager/blob/main/LICENSE)
-# ==================================================
-# Proxy Management System v1.6
-# 代理管理系统 v1.6
-# 
-# Description: A lightweight proxy manager for Bash and Zsh
-# 描述：用于 Bash 和 Zsh 的轻量级代理管理器
-# 
-# Features:
-# 功能:
-#   - Start/stop/toggle proxy settings
-#    启动/停止/切换代理设置
-#   - Auto-detect proxy port
-#    自动检测代理端口
-#   - Connection testing
-#    连接测试
-#   - Customizable aliases
-#    可自定义别名
-# 
-# Author: baixiaosheng
-# 作者：百晓生
-# ref-site: https://www.baixiaosheng.de
-# Repository: https://github.com/jokerknight/ProxyManager
-# 仓库地址：https://github.com/jokerknight/ProxyManager
-# ==================================================
+#!/usr/bin/env bash
+# ProxyCli runtime commands for Bash and Zsh.
 
-# Current proxy address (default: 127.0.0.1:7890)
-# 当前代理地址 (默认: 127.0.0.1:7890)
-PROXY_ADDRESS="http://127.0.0.1:7890"
-SOCKS_ADDRESS="socks5://127.0.0.1:7890"
+# The endpoint is configurable for users in restricted networks.
+PROXYCLI_TEST_URL="${PROXYCLI_TEST_URL:-https://example.com/}"
+_PROXYCLI_DEFAULT_PORTS="7890 7891 7892 7893 8888 8080"
+_PROXYCLI_SCAN_PORTS="$_PROXYCLI_DEFAULT_PORTS"
+PROXYCLI_MANUAL_PROXY="${PROXYCLI_MANUAL_PROXY:-0}"
+_PROXYCLI_DYNAMIC_PORT_LIMIT=20
+_PROXYCLI_SCAN_TIME_LIMIT=15
+_PROXYCLI_PROCESS_PATTERN='clash|mihomo|sing[-_]?box|xray|v2ray|hysteria|trojan|ss-local|sslocal|shadowsocks|tuic'
 
-# Detect best proxy config automatically
-# 自动检测最佳代理配置
+_proxycli_redact_url() {
+  case "$1" in
+    *://*@*)
+      printf '%s://***@%s' "${1%%://*}" "${1#*@}"
+      ;;
+    *)
+      printf '%s' "$1"
+      ;;
+  esac
+}
+
+_proxycli_listeners() {
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP -sTCP:LISTEN -F cPn 2>/dev/null | awk -v proxy_processes="$_PROXYCLI_PROCESS_PATTERN" '
+      /^c/ { command = tolower(substr($0, 2)); next }
+      /^n/ {
+        port = substr($0, 2)
+        sub(/.*:/, "", port)
+        if (port ~ /^[0-9]+$/) {
+          priority = command ~ proxy_processes ? 0 : 1
+          print priority, port
+        }
+      }
+    '
+  elif command -v ss >/dev/null 2>&1; then
+    ss -ltnpH 2>/dev/null | awk -v proxy_processes="$_PROXYCLI_PROCESS_PATTERN" '
+      {
+        port = $4
+        sub(/.*:/, "", port)
+        if (port ~ /^[0-9]+$/) {
+          line = tolower($0)
+          priority = line ~ proxy_processes ? 0 : 1
+          print priority, port
+        }
+      }
+    '
+  elif command -v netstat >/dev/null 2>&1; then
+    netstat -an 2>/dev/null | awk '
+      /LISTEN/ {
+        port = $4
+        sub(/.*[.:]/, "", port)
+        if (port ~ /^[0-9]+$/) print 1, port
+      }
+    '
+  fi
+}
+
+_proxycli_candidate_ports() {
+  local listeners
+
+  listeners="$(_proxycli_listeners)"
+  {
+    printf '%s\n' "${PROXYCLI_LAST_HTTP_PORT:-}" "${PROXYCLI_LAST_SOCKS_PORT:-}"
+    printf '%s\n' "$listeners" | awk '$1 == 0 { print $2 }'
+    printf '%s\n' "$_PROXYCLI_SCAN_PORTS" | awk '{ for (i = 1; i <= NF; i++) print $i }'
+    printf '%s\n' "$listeners" | awk -v limit="$_PROXYCLI_DYNAMIC_PORT_LIMIT" '
+      $1 != 0 && count < limit { print $2; count++ }
+    '
+  } | awk '/^[0-9]+$/ && $1 <= 65535 && !seen[$1]++'
+}
+
+_proxycli_probe_http_url() {
+  curl -sS --connect-timeout 1 --max-time 3 \
+    --proxy "$1" "$PROXYCLI_TEST_URL" >/dev/null 2>&1
+}
+
+_proxycli_probe_socks_url() {
+  curl -sS --connect-timeout 1 --max-time 3 \
+    --proxy "$1" "$PROXYCLI_TEST_URL" >/dev/null 2>&1
+}
+
+_proxycli_use_existing_proxy() {
+  local existing_http existing_socks
+
+  existing_http="${http_proxy:-${HTTP_PROXY:-${https_proxy:-${HTTPS_PROXY:-}}}}"
+  existing_socks="${all_proxy:-${ALL_PROXY:-}}"
+
+  [ -n "$existing_http" ] || [ -n "$existing_socks" ] || return 1
+
+  PROXY_ADDRESS="$existing_http"
+  SOCKS_ADDRESS="$existing_socks"
+  return 0
+}
+
+_proxycli_save_environment() {
+  [ "${PROXYCLI_ENV_SAVED:-0}" = "1" ] && return
+
+  if [ "${http_proxy+x}" = "x" ]; then PROXYCLI_SAVED_http_proxy_SET=1; fi
+  if [ "${HTTP_PROXY+x}" = "x" ]; then PROXYCLI_SAVED_HTTP_PROXY_SET=1; fi
+  if [ "${https_proxy+x}" = "x" ]; then PROXYCLI_SAVED_https_proxy_SET=1; fi
+  if [ "${HTTPS_PROXY+x}" = "x" ]; then PROXYCLI_SAVED_HTTPS_PROXY_SET=1; fi
+  if [ "${all_proxy+x}" = "x" ]; then PROXYCLI_SAVED_all_proxy_SET=1; fi
+  if [ "${ALL_PROXY+x}" = "x" ]; then PROXYCLI_SAVED_ALL_PROXY_SET=1; fi
+  if [ "${no_proxy+x}" = "x" ]; then PROXYCLI_SAVED_no_proxy_SET=1; fi
+  if [ "${NO_PROXY+x}" = "x" ]; then PROXYCLI_SAVED_NO_PROXY_SET=1; fi
+
+  PROXYCLI_SAVED_http_proxy="${http_proxy-}"
+  PROXYCLI_SAVED_HTTP_PROXY="${HTTP_PROXY-}"
+  PROXYCLI_SAVED_https_proxy="${https_proxy-}"
+  PROXYCLI_SAVED_HTTPS_PROXY="${HTTPS_PROXY-}"
+  PROXYCLI_SAVED_all_proxy="${all_proxy-}"
+  PROXYCLI_SAVED_ALL_PROXY="${ALL_PROXY-}"
+  PROXYCLI_SAVED_no_proxy="${no_proxy-}"
+  PROXYCLI_SAVED_NO_PROXY="${NO_PROXY-}"
+  PROXYCLI_ENV_SAVED=1
+}
+
+_proxycli_restore_environment() {
+  [ "${PROXYCLI_ENV_SAVED:-0}" = "1" ] || return
+
+  [ "${PROXYCLI_SAVED_http_proxy_SET:-0}" = "1" ] && export http_proxy="$PROXYCLI_SAVED_http_proxy" || unset http_proxy
+  [ "${PROXYCLI_SAVED_HTTP_PROXY_SET:-0}" = "1" ] && export HTTP_PROXY="$PROXYCLI_SAVED_HTTP_PROXY" || unset HTTP_PROXY
+  [ "${PROXYCLI_SAVED_https_proxy_SET:-0}" = "1" ] && export https_proxy="$PROXYCLI_SAVED_https_proxy" || unset https_proxy
+  [ "${PROXYCLI_SAVED_HTTPS_PROXY_SET:-0}" = "1" ] && export HTTPS_PROXY="$PROXYCLI_SAVED_HTTPS_PROXY" || unset HTTPS_PROXY
+  [ "${PROXYCLI_SAVED_all_proxy_SET:-0}" = "1" ] && export all_proxy="$PROXYCLI_SAVED_all_proxy" || unset all_proxy
+  [ "${PROXYCLI_SAVED_ALL_PROXY_SET:-0}" = "1" ] && export ALL_PROXY="$PROXYCLI_SAVED_ALL_PROXY" || unset ALL_PROXY
+  [ "${PROXYCLI_SAVED_no_proxy_SET:-0}" = "1" ] && export no_proxy="$PROXYCLI_SAVED_no_proxy" || unset no_proxy
+  [ "${PROXYCLI_SAVED_NO_PROXY_SET:-0}" = "1" ] && export NO_PROXY="$PROXYCLI_SAVED_NO_PROXY" || unset NO_PROXY
+
+  unset PROXYCLI_ENV_SAVED PROXYCLI_SAVED_http_proxy_SET PROXYCLI_SAVED_HTTP_PROXY_SET
+  unset PROXYCLI_SAVED_https_proxy_SET PROXYCLI_SAVED_HTTPS_PROXY_SET
+  unset PROXYCLI_SAVED_all_proxy_SET PROXYCLI_SAVED_ALL_PROXY_SET
+  unset PROXYCLI_SAVED_no_proxy_SET PROXYCLI_SAVED_NO_PROXY_SET
+  unset PROXYCLI_SAVED_http_proxy PROXYCLI_SAVED_HTTP_PROXY
+  unset PROXYCLI_SAVED_https_proxy PROXYCLI_SAVED_HTTPS_PROXY
+  unset PROXYCLI_SAVED_all_proxy PROXYCLI_SAVED_ALL_PROXY
+  unset PROXYCLI_SAVED_no_proxy PROXYCLI_SAVED_NO_PROXY
+}
+
+_proxycli_add_local_no_proxy() {
+  no_proxy="localhost,127.0.0.1,::1${no_proxy:+,$no_proxy}"
+  NO_PROXY="localhost,127.0.0.1,::1${NO_PROXY:+,$NO_PROXY}"
+  export no_proxy NO_PROXY
+}
+
+# Detect HTTP and SOCKS5 listeners independently. Cached and proxy-process
+# ports are tried first, followed by configured and other listening ports.
 detect_proxy() {
-  # Test common proxy ports: 7890, 7891,  7892,7893,8888, 8080
-  # 测试常见代理端口: 7890, 7891, 7892,7893,8888, 8080
-  for port in {7890,7891,7892,7893,8888,8080}; do
-    if curl -s --proxy "http://127.0.0.1:$port" https://example.com >/dev/null 2>&1; then
-      PROXY_ADDRESS="http://127.0.0.1:$port"
-      SOCKS_ADDRESS="socks5://127.0.0.1:$port"
-      echo "[Proxy] Auto detected port: $port" >&2
-      return
+  local port scan_now scan_started http_port="" socks_port=""
+
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "[ProxyCli] curl is required for proxy detection." >&2
+    return 1
+  fi
+
+  scan_started=${SECONDS:-0}
+  for port in $(_proxycli_candidate_ports); do
+    if [ -z "$http_port" ] && _proxycli_probe_http_url "http://127.0.0.1:$port"; then
+      http_port="$port"
+    fi
+    if [ -z "$socks_port" ] && _proxycli_probe_socks_url "socks5h://127.0.0.1:$port"; then
+      socks_port="$port"
+    fi
+    [ -n "$http_port" ] && [ -n "$socks_port" ] && break
+    scan_now=${SECONDS:-0}
+    if [ "$((scan_now - scan_started))" -ge "$_PROXYCLI_SCAN_TIME_LIMIT" ]; then
+      break
     fi
   done
-  # If no proxy detected, keep default settings
-  # 如果未检测到代理，保留默认设置
-  echo "[Proxy] ⚠️ No proxy detected, using default settings" >&2
+
+  if [ -z "$http_port" ] && [ -z "$socks_port" ]; then
+    echo "[ProxyCli] No working local proxy was detected." >&2
+    return 1
+  fi
+
+  PROXY_ADDRESS=""
+  SOCKS_ADDRESS=""
+  if [ -n "$http_port" ]; then
+    PROXY_ADDRESS="http://127.0.0.1:$http_port"
+    PROXYCLI_LAST_HTTP_PORT="$http_port"
+  fi
+  if [ -n "$socks_port" ]; then
+    SOCKS_ADDRESS="socks5://127.0.0.1:$socks_port"
+    PROXYCLI_LAST_SOCKS_PORT="$socks_port"
+  else
+    unset PROXYCLI_LAST_SOCKS_PORT
+  fi
+  echo "[ProxyCli] Detected${http_port:+ HTTP on port $http_port}${socks_port:+ SOCKS5 on port $socks_port}." >&2
 }
 
-# Start proxy settings
-# 启动代理设置
 start_proxy() {
-  # Detect best proxy configuration
-  # 检测最佳代理配置
-  detect_proxy
-  
-  # Set environment variables
-  # 设置环境变量
-  export http_proxy="$PROXY_ADDRESS"
-  export HTTP_PROXY="$PROXY_ADDRESS"
-  export https_proxy="$PROXY_ADDRESS"
-  export HTTPS_PROXY="$PROXY_ADDRESS"
-  export all_proxy="$SOCKS_ADDRESS"
-  export ALL_PROXY="$SOCKS_ADDRESS"
-  
-  # Display status
-  # 显示状态
-  echo "[Proxy] ✅  Active - using 🔁 $PROXY_ADDRESS"
+  local was_saved="${PROXYCLI_ENV_SAVED:-0}"
 
-  proxy_status
-}
-
-# Stop proxy settings
-# 停止代理设置
-stop_proxy() {
-  # Unset environment variables
-  # 取消环境变量设置
-  unset http_proxy HTTP_PROXY https_proxy HTTPS_PROXY all_proxy ALL_PROXY
-  
-  # Display status
-  # 显示状态
-  echo "[Proxy] ❌ Disabled"
-  proxy_status
-}
-
-# Show proxy status
-# 显示代理状态
-proxy_status() {
-  if [ -n "$http_proxy" ]; then
-    echo "[Proxy] Current Status: ✅ ACTIVE"
-    echo " -🔷 HTTP:  $http_proxy"
-    echo " -🔷 HTTPS: $https_proxy"
-    echo " -🔶 SOCKS: $all_proxy"
-  else
-    echo "[Proxy] Current Status: ❌ INACTIVE"
-  fi
-  
-  # Test basic internet connection
-  # 测试基本网络连接
-  echo "[Test] Checking connectivity:"
-  if curl -Is --max-time 3 https://ip.sb >/dev/null; then
-    echo "  ✅  General internet access"
-  else
-    echo "  ❌  No internet access"
-  fi
-  
-  # Test proxy connection (only if active)
-  # 测试代理连接（仅在激活状态）
-  if [ -n "$http_proxy" ]; then
-    if curl -Is --proxy "$PROXY_ADDRESS" https://www.google.com >/dev/null 2>&1; then
-      echo "  ✅  Proxy working (Google accessible)"
-    else
-      echo "  ❌  Proxy not working (Google blocked)"
+  if [ "${1:-}" != "--skip-detect" ] && [ "$PROXYCLI_MANUAL_PROXY" != "1" ]; then
+    if [ "$was_saved" != "1" ] && _proxycli_use_existing_proxy; then
+      echo "[ProxyCli] Reusing existing proxy environment." >&2
+    elif ! detect_proxy; then
+      return 1
     fi
   fi
 
-   #echo "  - ✅  IP: $(curl -4 api.ipify.org)"
+  if [ -z "${PROXY_ADDRESS:-}" ] && [ -z "${SOCKS_ADDRESS:-}" ]; then
+    echo "[ProxyCli] Set a proxy with: pset host:port" >&2
+    return 1
+  fi
 
+  _proxycli_save_environment
+  [ "$was_saved" = "1" ] || _proxycli_add_local_no_proxy
+
+  if [ -n "${PROXY_ADDRESS:-}" ]; then
+    export http_proxy="$PROXY_ADDRESS" HTTP_PROXY="$PROXY_ADDRESS"
+    export https_proxy="$PROXY_ADDRESS" HTTPS_PROXY="$PROXY_ADDRESS"
+  else
+    unset http_proxy HTTP_PROXY https_proxy HTTPS_PROXY
+  fi
+  if [ -n "${SOCKS_ADDRESS:-}" ]; then
+    export all_proxy="$SOCKS_ADDRESS" ALL_PROXY="$SOCKS_ADDRESS"
+  else
+    unset all_proxy ALL_PROXY
+  fi
+
+  echo "[ProxyCli] Active"
+  [ -n "${PROXY_ADDRESS:-}" ] && echo "  HTTP:  $(_proxycli_redact_url "$PROXY_ADDRESS")"
+  [ -n "${SOCKS_ADDRESS:-}" ] && echo "  SOCKS: $(_proxycli_redact_url "$SOCKS_ADDRESS")"
+  proxy_status
 }
 
-# Toggle proxy status
-# 切换代理状态
+stop_proxy() {
+  if [ "${PROXYCLI_ENV_SAVED:-0}" != "1" ]; then
+    echo "[ProxyCli] No ProxyCli-managed proxy environment is active."
+    return 0
+  fi
+
+  _proxycli_restore_environment
+  echo "[ProxyCli] Disabled; restored the previous proxy environment."
+}
+
 toggle_proxy() {
-  if [ -n "$http_proxy" ]; then
+  if [ "${PROXYCLI_ENV_SAVED:-0}" = "1" ]; then
     stop_proxy
   else
     start_proxy
   fi
 }
 
-# Set custom proxy address
-# 设置自定义代理地址
-set_proxy() {
-  if [ -n "$1" ]; then
-    # Format: host:port
-    # 格式: 主机:端口
-    PROXY_ADDRESS="http://$1"
-    SOCKS_ADDRESS="socks5://$1"
-    echo "[Proxy] Set to: $PROXY_ADDRESS"
-    
-    # Start with new settings
-    # 使用新设置启动
-    start_proxy
+proxy_status() {
+  if [ "${PROXYCLI_ENV_SAVED:-0}" = "1" ]; then
+    echo "[ProxyCli] Current status: ACTIVE"
+    [ -n "${http_proxy:-}" ] && echo "  HTTP:  $(_proxycli_redact_url "$http_proxy")"
+    [ -n "${all_proxy:-}" ] && echo "  SOCKS: $(_proxycli_redact_url "$all_proxy")"
   else
-    echo "Usage: set_proxy [host:port]"
-    echo "Current: ${PROXY_ADDRESS#http://}"
+    echo "[ProxyCli] Current status: INACTIVE"
+    return 0
+  fi
+
+  if curl -fsSI --connect-timeout 1 --max-time 3 --noproxy '*' "$PROXYCLI_TEST_URL" >/dev/null 2>&1; then
+    echo "  Direct network: available"
+  else
+    echo "  Direct network: unavailable"
+  fi
+
+  if [ -n "${PROXY_ADDRESS:-}" ]; then
+    if _proxycli_probe_http_url "$PROXY_ADDRESS"; then
+      echo "  HTTP proxy: working"
+    else
+      echo "  HTTP proxy: unavailable"
+    fi
+  fi
+
+  if [ -n "${SOCKS_ADDRESS:-}" ]; then
+    if _proxycli_probe_socks_url "$SOCKS_ADDRESS"; then
+      echo "  SOCKS5 proxy: working"
+    else
+      echo "  SOCKS5 proxy: unavailable"
+    fi
   fi
 }
 
-# Display help information
-# 显示帮助信息
-show_help() {
-  echo "Proxy Management Commands (代理管理命令):"
-  echo "  pstart    - Enable proxy (启用代理)"
-  echo "  pstop     - Disable proxy (禁用代理)"
-  echo "  ptoggle   - Toggle proxy (切换代理状态)"
-  echo "  pstatus   - Show proxy status (显示代理状态)"
-  echo "  pset      - Set custom proxy address (设置自定义代理)"
-  echo "  phelp     - Show this help (显示帮助信息)"
-  echo ""
-  echo "Quick Start (快速开始):"
-  echo "  pstart      # Enable proxy (启用代理)"
-  echo "  pstatus     # Check status (查看状态)"
-  echo "  username:password@server:port # Set custom proxy (设置代理)"
+set_proxy() {
+  local http_input socks_input address
+
+  if [ "${1:-}" = "--auto" ]; then
+    if [ "${PROXYCLI_ENV_SAVED:-0}" = "1" ]; then
+      stop_proxy >/dev/null
+    fi
+    PROXYCLI_MANUAL_PROXY=0
+    unset PROXY_ADDRESS SOCKS_ADDRESS
+    start_proxy
+    return
+  fi
+
+  http_input="${1:-}"
+  socks_input="${2:-$http_input}"
+  if [ -z "$http_input" ] || [[ "$http_input" = *[[:space:]]* ]] || [[ "$socks_input" = *[[:space:]]* ]]; then
+    echo "Usage: pset [http://]host:port [socks5://host:port]" >&2
+    echo "       pset --auto" >&2
+    return 1
+  fi
+
+  case "$http_input" in
+    http://*|https://*) PROXY_ADDRESS="$http_input" ;;
+    *) PROXY_ADDRESS="http://$http_input" ;;
+  esac
+  case "$socks_input" in
+    socks5://*|socks5h://*) SOCKS_ADDRESS="$socks_input" ;;
+    http://*) SOCKS_ADDRESS="socks5://${socks_input#http://}" ;;
+    https://*) SOCKS_ADDRESS="socks5://${socks_input#https://}" ;;
+    *) SOCKS_ADDRESS="socks5://$socks_input" ;;
+  esac
+
+  address="$(_proxycli_redact_url "$PROXY_ADDRESS")"
+  PROXYCLI_MANUAL_PROXY=1
+  echo "[ProxyCli] Manual HTTP proxy set to: $address"
+  start_proxy --skip-detect
 }
 
-# Configure aliases for quick access
-# 为快速访问配置别名
+set_scan_ports() {
+  local port ports=""
+
+  case "${1:-}" in
+    '')
+      echo "[ProxyCli] Scan ports: $_PROXYCLI_SCAN_PORTS"
+      return 0
+      ;;
+    --reset)
+      if [ "$#" -ne 1 ]; then
+        echo "Usage: pports [port ...|--reset]" >&2
+        return 1
+      fi
+      _PROXYCLI_SCAN_PORTS="$_PROXYCLI_DEFAULT_PORTS"
+      unset PROXYCLI_LAST_HTTP_PORT PROXYCLI_LAST_SOCKS_PORT
+      echo "[ProxyCli] Scan ports reset: $_PROXYCLI_SCAN_PORTS"
+      return 0
+      ;;
+  esac
+
+  for port in "$@"; do
+    case "$port" in
+      ''|*[!0-9]*)
+        echo "[ProxyCli] Invalid port: $port" >&2
+        return 1
+        ;;
+    esac
+    if [ "${#port}" -gt 5 ] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+      echo "[ProxyCli] Invalid port: $port" >&2
+      return 1
+    fi
+    case " $ports " in
+      *" $port "*) ;;
+      *) ports="${ports:+$ports }$port" ;;
+    esac
+  done
+
+  _PROXYCLI_SCAN_PORTS="$ports"
+  unset PROXYCLI_LAST_HTTP_PORT PROXYCLI_LAST_SOCKS_PORT
+  echo "[ProxyCli] Scan ports set: $_PROXYCLI_SCAN_PORTS"
+}
+
+show_help() {
+  cat <<'EOF'
+ProxyCli commands:
+  pstart                 Detect and enable a local proxy
+  pstop                  Disable ProxyCli and restore prior proxy variables
+  ptoggle                Toggle ProxyCli proxy settings
+  pstatus                Show current ProxyCli proxy status
+  pset host:port         Set one HTTP/SOCKS5 endpoint manually
+  pset http://h:p socks5://h:p
+                         Set HTTP and SOCKS5 endpoints separately
+  pset --auto            Return to automatic detection
+  pports                 Show automatic scan ports
+  pports port ...        Replace the automatic scan ports
+  pports --reset         Restore the default scan ports
+  phelp                  Show this help
+EOF
+}
+
 alias pstart='start_proxy'
 alias pstop='stop_proxy'
 alias ptoggle='toggle_proxy'
 alias pstatus='proxy_status'
 alias pset='set_proxy'
+alias pports='set_scan_ports'
 alias phelp='show_help'
 
-# 添加到提示符 (可选)
-proxy_prompt() {
-  if [[ -n "$http_proxy" ]]; then
-    echo "[PROXY]"
-  else
-    echo ""
-  fi
-}
-
-# 自定义终端提示符，显示代理状态
-if [ -n "$ZSH_VERSION" ]; then
-  # 对于Zsh用户:
-  PROMPT='%B%F{green}%(?.✔.%F{red}✘)%f%b %F{blue}%1~%f %F{yellow}$(proxy_prompt)%f%# '
-fi
-if [ -n "$BASH_VERSION" ]; then
-  # 对于Bash用户:
-  PROMPT_COMMAND='PS1="\[\e[32m\]\$(if [[ -n \$http_proxy ]]; then echo ✔; else echo ✘; fi) \[\e[34m\]\w \[\e[33m\]\$(proxy_prompt)\[\e[0m\] \$ "'
-fi
-
-
-# Initial message when loaded
-# 加载时显示初始消息
-echo "[Proxy] Manager loaded. Type 'phelp' for commands."
-echo "[代理] 管理器已加载。输入 'phelp' 查看命令。"
+echo "[ProxyCli] Loaded. Type 'phelp' for commands."

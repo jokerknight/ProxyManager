@@ -6,7 +6,7 @@
 ## 功能
 
 - 🚀 一键启动/停止/切换代理设置  
-- 🔍 自动检测代理端口 (支持7890, 7891, 7892,7893, 8888, 8080)  
+- 🔍 从本地监听端口自动识别 HTTP 和 SOCKS5 代理
 - 📊 显示详细的代理状态信息  
 - 🌐 测试互联网和代理连接  
 - ⚙️ 支持设置自定义代理地址  
@@ -17,13 +17,13 @@
 ### 一行命令安装
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyCli/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/install.sh)
 ```
 
 ### 一行命令卸载
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyCli/main/install.sh) --uninstall
+bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/install.sh) --uninstall
 ```
 
 ### 手动安装
@@ -36,7 +36,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyCli/main/inst
 
 2. 运行安装脚本:
    ```bash
-   ./install.sh
+   bash install.sh
    ```
 
 3. 重新加载您的 shell:
@@ -52,13 +52,27 @@ bash <(curl -Ls https://raw.githubusercontent.com/jokerknight/ProxyCli/main/inst
 | `pstop`    | 禁用代理         | `pstop`             |
 | `ptoggle`  | 切换代理状态     | `ptoggle`           |
 | `pstatus`  | 显示代理状态     | `pstatus`           |
-| `pset`     | 设置自定义代理   | `pset username:password@server:port` |
+| `pset`     | 设置自定义 HTTP/SOCKS 代理 | `pset username:password@server:port` |
+| `pset --auto` | 恢复自动识别 | `pset --auto` |
+| `pports` | 查看或修改扫描端口 | `pports 7890 1080 8080` |
 | `phelp`    | 显示帮助信息     | `phelp`             |
+
+## 代理识别
+
+`pstart` 会优先复用已有代理环境或上次识别成功的端口，然后依次检测常见代理进程监听的端口、配置的候选端口以及其他本地监听端口。每个候选端口都会分别验证 HTTP 和 SOCKS5 协议。
+
+默认候选端口为 `7890 7891 7892 7893 8888 8080`。需要时可在当前 shell 中修改：
+
+```bash
+pports 7890 1080 8080
+```
+
+直接执行 `pports` 可查看当前列表，执行 `pports --reset` 可恢复预设端口。使用 `pset host:port` 跳过自动识别，使用 `pset --auto` 恢复自动模式。
 
 ## 卸载方法
 
 ```bash
-./install.sh uninstall
+bash install.sh uninstall
 ```
 
 ## 支持环境
@@ -75,8 +89,10 @@ ProxyCli/
 ├── README.md               # 英文文档
 ├── README_CN.md            # 中文文档
 ├── install.sh               # 安装脚本
-└── src/
-    └── proxy-setup.sh      # 核心代理管理脚本
+├── src/
+│   └── proxy-setup.sh      # 核心代理管理脚本
+└── tests/
+    └── test_proxy_setup.sh # 离线 shell 回归测试
 ```
 
 ## 贡献
