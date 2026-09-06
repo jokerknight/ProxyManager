@@ -23,7 +23,7 @@ bash tests/test_proxy_setup.sh
 bash install.sh --help
 ```
 
-`bash -n` performs a syntax-only check; the test script validates proxy state without network access. For behavior changes, use a disposable shell profile or manually source `src/proxy-setup.sh`, then exercise `pstart`, `pstop`, `ptoggle`, `pstatus`, `pset host:port`, and `pports`. Do not run the installer against a personal shell configuration unless you intend to modify it.
+`bash -n` performs a syntax-only check; the test script validates proxy state without network access. For behavior changes, use a disposable shell profile or manually source `src/proxy-setup.sh`, then exercise `pstart`, `pscan`, `pstop`, `ptoggle`, `pstatus`, `pset host:port`, and `pports`. Do not run the installer against a personal shell configuration unless you intend to modify it.
 
 ## Coding Style & Naming Conventions
 

@@ -5,6 +5,7 @@
 PROXYCLI_TEST_URL="${PROXYCLI_TEST_URL:-https://example.com/}"
 _PROXYCLI_DEFAULT_PORTS="7890 7891 7892 7893 8888 8080"
 _PROXYCLI_SCAN_PORTS="$_PROXYCLI_DEFAULT_PORTS"
+_PROXYCLI_AUTO_READY=0
 PROXYCLI_MANUAL_PROXY="${PROXYCLI_MANUAL_PROXY:-0}"
 _PROXYCLI_DYNAMIC_PORT_LIMIT=20
 _PROXYCLI_SCAN_TIME_LIMIT=15
@@ -69,6 +70,24 @@ _proxycli_candidate_ports() {
       $1 != 0 && count < limit { print $2; count++ }
     '
   } | awk '/^[0-9]+$/ && $1 <= 65535 && !seen[$1]++'
+}
+
+_proxycli_cached_proxy_available() {
+  local checked=0 endpoint listeners port
+
+  listeners="$(_proxycli_listeners)"
+  [ -n "$listeners" ] || return 1
+
+  for endpoint in "${PROXY_ADDRESS:-}" "${SOCKS_ADDRESS:-}"; do
+    [ -n "$endpoint" ] || continue
+    checked=1
+    port="${endpoint##*:}"
+    port="${port%%/*}"
+    if ! printf '%s\n' "$listeners" | awk -v expected="$port" '$2 == expected { found = 1 } END { exit !found }'; then
+      return 1
+    fi
+  done
+  [ "$checked" = "1" ]
 }
 
 _proxycli_probe_http_url() {
@@ -150,6 +169,8 @@ _proxycli_add_local_no_proxy() {
 detect_proxy() {
   local port scan_now scan_started http_port="" socks_port=""
 
+  _PROXYCLI_AUTO_READY=0
+
   if ! command -v curl >/dev/null 2>&1; then
     echo "[ProxyCli] curl is required for proxy detection." >&2
     return 1
@@ -187,14 +208,28 @@ detect_proxy() {
   else
     unset PROXYCLI_LAST_SOCKS_PORT
   fi
+  _PROXYCLI_AUTO_READY=1
   echo "[ProxyCli] Detected${http_port:+ HTTP on port $http_port}${socks_port:+ SOCKS5 on port $socks_port}." >&2
 }
 
 start_proxy() {
-  local was_saved="${PROXYCLI_ENV_SAVED:-0}"
+  local mode="${1:-}" was_saved="${PROXYCLI_ENV_SAVED:-0}"
 
-  if [ "${1:-}" != "--skip-detect" ] && [ "$PROXYCLI_MANUAL_PROXY" != "1" ]; then
-    if [ "$was_saved" != "1" ] && _proxycli_use_existing_proxy; then
+  case "$mode" in
+    ''|--skip-detect) ;;
+    *)
+      echo "Usage: pstart" >&2
+      return 1
+      ;;
+  esac
+
+  if [ "$mode" != "--skip-detect" ] && [ "$PROXYCLI_MANUAL_PROXY" != "1" ]; then
+    if [ "$_PROXYCLI_AUTO_READY" = "1" ] && _proxycli_cached_proxy_available; then
+      echo "[ProxyCli] Reusing the last detected proxy." >&2
+    elif [ "$_PROXYCLI_AUTO_READY" = "1" ]; then
+      echo "[ProxyCli] Cached proxy is unavailable; scanning again." >&2
+      detect_proxy || return 1
+    elif [ "$was_saved" != "1" ] && _proxycli_use_existing_proxy; then
       echo "[ProxyCli] Reusing existing proxy environment." >&2
     elif ! detect_proxy; then
       return 1
@@ -224,7 +259,15 @@ start_proxy() {
   echo "[ProxyCli] Active"
   [ -n "${PROXY_ADDRESS:-}" ] && echo "  HTTP:  $(_proxycli_redact_url "$PROXY_ADDRESS")"
   [ -n "${SOCKS_ADDRESS:-}" ] && echo "  SOCKS: $(_proxycli_redact_url "$SOCKS_ADDRESS")"
-  proxy_status
+}
+
+scan_proxy() {
+  if ! detect_proxy; then
+    return 1
+  fi
+
+  PROXYCLI_MANUAL_PROXY=0
+  start_proxy --skip-detect
 }
 
 stop_proxy() {
@@ -286,8 +329,9 @@ set_proxy() {
       stop_proxy >/dev/null
     fi
     PROXYCLI_MANUAL_PROXY=0
+    _PROXYCLI_AUTO_READY=0
     unset PROXY_ADDRESS SOCKS_ADDRESS
-    start_proxy
+    scan_proxy
     return
   fi
 
@@ -312,6 +356,7 @@ set_proxy() {
 
   address="$(_proxycli_redact_url "$PROXY_ADDRESS")"
   PROXYCLI_MANUAL_PROXY=1
+  _PROXYCLI_AUTO_READY=0
   echo "[ProxyCli] Manual HTTP proxy set to: $address"
   start_proxy --skip-detect
 }
@@ -330,6 +375,7 @@ set_scan_ports() {
         return 1
       fi
       _PROXYCLI_SCAN_PORTS="$_PROXYCLI_DEFAULT_PORTS"
+      _PROXYCLI_AUTO_READY=0
       unset PROXYCLI_LAST_HTTP_PORT PROXYCLI_LAST_SOCKS_PORT
       echo "[ProxyCli] Scan ports reset: $_PROXYCLI_SCAN_PORTS"
       return 0
@@ -354,6 +400,7 @@ set_scan_ports() {
   done
 
   _PROXYCLI_SCAN_PORTS="$ports"
+  _PROXYCLI_AUTO_READY=0
   unset PROXYCLI_LAST_HTTP_PORT PROXYCLI_LAST_SOCKS_PORT
   echo "[ProxyCli] Scan ports set: $_PROXYCLI_SCAN_PORTS"
 }
@@ -361,7 +408,8 @@ set_scan_ports() {
 show_help() {
   cat <<'EOF'
 ProxyCli commands:
-  pstart                 Detect and enable a local proxy
+  pstart                 Reuse a valid proxy or scan when unavailable
+  pscan                  Force proxy detection and enable the result
   pstop                  Disable ProxyCli and restore prior proxy variables
   ptoggle                Toggle ProxyCli proxy settings
   pstatus                Show current ProxyCli proxy status
@@ -377,6 +425,7 @@ EOF
 }
 
 alias pstart='start_proxy'
+alias pscan='scan_proxy'
 alias pstop='stop_proxy'
 alias ptoggle='toggle_proxy'
 alias pstatus='proxy_status'

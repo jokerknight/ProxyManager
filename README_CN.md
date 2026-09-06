@@ -17,20 +17,26 @@
 ### 一行命令安装
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/install.sh)
+bash <(curl -sSL baixiaosheng.de/proxycli)
+```
+
+GitHub Raw 备用方式：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/baixiaoshengofficial/ProxyCli/main/install.sh)
 ```
 
 ### 一行命令卸载
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/install.sh) --uninstall
+bash <(curl -sSL baixiaosheng.de/proxycli) --uninstall
 ```
 
 ### 手动安装
 
 1. 克隆仓库:
    ```bash
-   git clone https://github.com/jokerknight/ProxyCli.git
+   git clone https://github.com/baixiaoshengofficial/ProxyCli.git
    cd ProxyCli
    ```
 
@@ -49,6 +55,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/in
 | 命令       | 描述             | 示例                |
 |------------|------------------|---------------------|
 | `pstart`   | 启用代理         | `pstart`            |
+| `pscan` | 强制重新识别并启用代理 | `pscan` |
 | `pstop`    | 禁用代理         | `pstop`             |
 | `ptoggle`  | 切换代理状态     | `ptoggle`           |
 | `pstatus`  | 显示代理状态     | `pstatus`           |
@@ -59,7 +66,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/in
 
 ## 代理识别
 
-`pstart` 会优先复用已有代理环境或上次识别成功的端口，然后依次检测常见代理进程监听的端口、配置的候选端口以及其他本地监听端口。每个候选端口都会分别验证 HTTP 和 SOCKS5 协议。
+`pstart` 是被动模式：它会快速检查缓存的本地端口是否仍在监听，有效时直接复用；缓存或默认端口无效时才自动重新扫描。`pscan` 是主动模式：每次都会强制重新识别并启用结果。扫描时会依次检测常见代理进程监听的端口、配置的候选端口以及其他本地监听端口，并分别验证 HTTP 和 SOCKS5 协议。完整连通性检查请单独执行 `pstatus`。
 
 默认候选端口为 `7890 7891 7892 7893 8888 8080`。需要时可在当前 shell 中修改：
 
@@ -99,7 +106,7 @@ ProxyCli/
 
 欢迎提交 issue 或 pull request 来改进本项目。
 
-[在 GitHub 上查看](https://github.com/jokerknight/ProxyCli)
+[在 GitHub 上查看](https://github.com/baixiaoshengofficial/ProxyCli)
 
 ## 许可证
 

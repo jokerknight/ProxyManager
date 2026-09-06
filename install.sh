@@ -17,7 +17,7 @@ case "${HOME:-}" in
 esac
 
 PROJECT_NAME="ProxyCli"
-REPO_SLUG="jokerknight/ProxyCli"
+REPO_SLUG="baixiaoshengofficial/ProxyCli"
 RAW_BASE_URL="https://raw.githubusercontent.com/${REPO_SLUG}/main"
 INSTALL_DIR="${HOME}/.proxycli"
 LEGACY_INSTALL_DIR="${HOME}/.proxy-manager"

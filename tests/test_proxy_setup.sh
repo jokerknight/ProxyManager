@@ -12,7 +12,7 @@ assert_equals() {
   fi
 }
 
-test_runtime() {
+test_runtime() (
   local original_http="http://previous-proxy:3128"
   local original_socks="socks5://previous-proxy:1080"
 
@@ -38,16 +38,87 @@ test_runtime() {
 
   start_proxy --skip-detect >/dev/null
   assert_equals "http://127.0.0.1:7890" "$http_proxy" "manual proxy survives restart"
+
+  detect_proxy() {
+    PROXY_ADDRESS="http://127.0.0.1:9000"
+    SOCKS_ADDRESS="socks5://127.0.0.1:9000"
+    _PROXYCLI_AUTO_READY=1
+  }
   set_proxy --auto >/dev/null 2>&1
   assert_equals "0" "$PROXYCLI_MANUAL_PROXY" "automatic detection is restored"
-  assert_equals "$original_http" "$http_proxy" "auto mode reuses the original HTTP proxy"
+  assert_equals "http://127.0.0.1:9000" "$http_proxy" "auto mode refreshes the detected HTTP proxy"
   stop_proxy >/dev/null
 
   [ -z "${PROXYCLI_SAVED_http_proxy+x}" ] || {
     echo "FAIL: saved proxy values should be cleared after stopping" >&2
     exit 1
   }
-}
+)
+
+test_fast_restart() (
+  local cached_valid=1 detect_calls=0 status_calls=0
+
+  # shellcheck source=/dev/null
+  source "$repo_root/src/proxy-setup.sh" >/dev/null
+  unset http_proxy HTTP_PROXY https_proxy HTTPS_PROXY all_proxy ALL_PROXY
+
+  detect_proxy() {
+    detect_calls=$((detect_calls + 1))
+    PROXY_ADDRESS="http://127.0.0.1:7890"
+    SOCKS_ADDRESS="socks5://127.0.0.1:7890"
+    _PROXYCLI_AUTO_READY=1
+  }
+  proxy_status() {
+    status_calls=$((status_calls + 1))
+  }
+  _proxycli_cached_proxy_available() {
+    [ "$cached_valid" = "1" ]
+  }
+
+  start_proxy >/dev/null
+  assert_equals "1" "$detect_calls" "first start detects the proxy"
+  assert_equals "0" "$status_calls" "start does not run full connectivity checks"
+
+  start_proxy >/dev/null 2>&1
+  assert_equals "1" "$detect_calls" "active proxy reuses a valid cached listener"
+
+  stop_proxy >/dev/null
+  start_proxy >/dev/null 2>&1
+  assert_equals "1" "$detect_calls" "restart reuses the detected proxy"
+
+  stop_proxy >/dev/null
+  cached_valid=0
+  start_proxy >/dev/null 2>&1
+  assert_equals "2" "$detect_calls" "invalid cached proxy triggers a passive scan"
+
+  scan_proxy >/dev/null
+  assert_equals "3" "$detect_calls" "pscan always forces proxy detection"
+  assert_equals "0" "$status_calls" "start and scan do not run full connectivity checks"
+  stop_proxy >/dev/null
+)
+
+test_cached_listener_check() (
+  # shellcheck source=/dev/null
+  source "$repo_root/src/proxy-setup.sh" >/dev/null
+
+  PROXY_ADDRESS="http://127.0.0.1:7890"
+  SOCKS_ADDRESS=""
+  _proxycli_listeners() { printf '%s\n' '0 7890' '1 8080'; }
+  _proxycli_cached_proxy_available
+
+  SOCKS_ADDRESS="socks5://127.0.0.1:1080"
+  if _proxycli_cached_proxy_available; then
+    echo "FAIL: all cached proxy endpoints must still be listening" >&2
+    exit 1
+  fi
+
+  PROXY_ADDRESS="http://127.0.0.1:9000"
+  SOCKS_ADDRESS=""
+  if _proxycli_cached_proxy_available; then
+    echo "FAIL: a missing cached listener should be unavailable" >&2
+    exit 1
+  fi
+)
 
 test_detection_order() (
   # shellcheck source=/dev/null
@@ -96,12 +167,14 @@ test_scan_port_configuration() (
   assert_equals "9001 1080" "$_PROXYCLI_SCAN_PORTS" "invalid input does not change scan ports"
 
   PROXYCLI_LAST_HTTP_PORT=9001
+  _PROXYCLI_AUTO_READY=1
   set_scan_ports --reset >/dev/null
   assert_equals "$_PROXYCLI_DEFAULT_PORTS" "$_PROXYCLI_SCAN_PORTS" "default scan ports are restored"
   [ -z "${PROXYCLI_LAST_HTTP_PORT+x}" ] || {
     echo "FAIL: changing scan ports should clear cached results" >&2
     exit 1
   }
+  assert_equals "0" "$_PROXYCLI_AUTO_READY" "changing scan ports invalidates the detected proxy"
 )
 
 test_socks_only_detection() (
@@ -186,6 +259,7 @@ test_installer_configuration() {
     set -- help
     # shellcheck source=/dev/null
     source "$repo_root/install.sh" >/dev/null
+    assert_equals "baixiaoshengofficial/ProxyCli" "$REPO_SLUG" "installer uses the current GitHub repository"
 
     configure_shell "$config_file"
     configure_shell "$config_file"
@@ -206,6 +280,8 @@ if HOME=/ SHELL=/bin/bash bash "$repo_root/install.sh" --help >/dev/null 2>&1; t
   exit 1
 fi
 test_runtime
+test_fast_restart
+test_cached_listener_check
 test_detection_order
 test_scan_port_configuration
 test_socks_only_detection

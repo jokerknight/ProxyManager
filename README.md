@@ -1,4 +1,4 @@
-英文 [中文](https://github.com/jokerknight/ProxyCli/blob/main/README_CN.md) 
+English [中文](https://github.com/baixiaoshengofficial/ProxyCli/blob/main/README_CN.md)
 # Proxy Management Script
 
 A lightweight, powerful proxy management script for Bash and Zsh, onekey config  http_proxy,https_proxy,socks5_proxy,all_proxy by cli.
@@ -17,13 +17,19 @@ A lightweight, powerful proxy management script for Bash and Zsh, onekey config 
 ### One-line Install 
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/install.sh)
+bash <(curl -sSL baixiaosheng.de/proxycli)
+```
+
+GitHub Raw fallback:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/baixiaoshengofficial/ProxyCli/main/install.sh)
 ```
 
 ### One-line Uninstall 
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/install.sh) --uninstall
+bash <(curl -sSL baixiaosheng.de/proxycli) --uninstall
 ```
 
 ### Manual Install 
@@ -31,7 +37,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/in
 1. Clone repository:  
 
    ```bash
-   git clone https://github.com/jokerknight/ProxyCli.git
+   git clone https://github.com/baixiaoshengofficial/ProxyCli.git
    cd ProxyCli
    ```
 
@@ -52,6 +58,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/in
 | Command  | Description| Example |
 |----------------|-------------------|---------------|
 | `pstart`       | Enable proxy<br> | `pstart` |
+| `pscan`        | Force a new proxy scan and enable it<br> | `pscan` |
 | `pstop`        | Disable proxy<br> | `pstop` |
 | `ptoggle`      | Toggle proxy<br> | `ptoggle` |
 | `pstatus`      | Show proxy status<br> | `pstatus` |
@@ -62,7 +69,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/jokerknight/ProxyCli/main/in
 
 ## Proxy Detection
 
-`pstart` first reuses an existing proxy environment or the last successful ports. It then prioritizes listeners owned by common proxy processes, checks the configured candidate ports, and finally checks other local listeners. Every candidate is verified as HTTP and SOCKS5 independently.
+`pstart` is passive: it quickly checks whether the cached local port is still listening and reuses it when valid. If the cached or default ports are unavailable, it automatically scans again. `pscan` is active: it always performs a fresh scan and enables the result. A scan prioritizes common proxy processes, checks the configured candidate ports, and finally checks other local listeners. Every candidate is verified as HTTP and SOCKS5 independently. Run `pstatus` separately for full connectivity checks.
 
 The defaults are `7890 7891 7892 7893 8888 8080`. Change them for the current shell when needed:
 
@@ -103,7 +110,7 @@ ProxyCli/
 Contributions are welcome! Please open an issue or submit a pull request.  
 
 
-[View on GitHub](https://github.com/jokerknight/ProxyCli)
+[View on GitHub](https://github.com/baixiaoshengofficial/ProxyCli)
 
 ## License 
 
